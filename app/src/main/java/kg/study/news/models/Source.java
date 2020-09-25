@@ -1,4 +1,4 @@
-package kg.study.popularnews.models;
+package kg.study.news.models;
 
 import com.google.gson.annotations.Expose;
 import com.google.gson.annotations.SerializedName;

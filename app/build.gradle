@@ -1,4 +1,5 @@
 apply plugin: 'com.android.application'
+apply plugin: 'kotlin-android'
 
 android {
     compileSdkVersion 29
@@ -10,7 +11,7 @@ android {
     }
 
     defaultConfig {
-        applicationId "kg.study.popularnews"
+        applicationId "kg.study.news"
         minSdkVersion 23
         targetSdkVersion 29
         versionCode 1
@@ -57,4 +58,16 @@ dependencies {
 
     // times formatter
     implementation 'org.ocpsoft.prettytime:prettytime:4.0.4.Final'
+
+    implementation 'androidx.swiperefreshlayout:swiperefreshlayout:1.0.0'
+
+    implementation 'com.google.android.material:material:1.1.0'
+    implementation "androidx.core:core-ktx:+"
+    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlin_version"
+
+    // interceptors
+    implementation("com.squareup.okhttp3:logging-interceptor:4.9.0")
+}
+repositories {
+    mavenCentral()
 }

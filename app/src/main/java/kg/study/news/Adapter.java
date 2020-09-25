@@ -1,18 +1,16 @@
-package kg.study.popularnews;
+package kg.study.news;
 
 import android.content.Context;
 import android.graphics.drawable.Drawable;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.AdapterView;
 import android.widget.ImageView;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.core.os.ParcelableCompatCreatorCallbacks;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.bumptech.glide.Glide;
@@ -25,17 +23,16 @@ import com.bumptech.glide.request.RequestOptions;
 import com.bumptech.glide.request.target.Target;
 
 import java.util.List;
-import java.util.ListIterator;
 
-import kg.study.popularnews.models.Article;
-import okhttp3.internal.Util;
+import kg.study.news.models.Article;
 
 
-public class Adapter  extends RecyclerView.Adapter<Adapter.MyViewHolder>{
+public class Adapter extends RecyclerView.Adapter<Adapter.MyViewHolder> {
 
     private List<Article> articles;
     private Context context;
     private OnItemClickListener onItemClickListener;
+
 
     public Adapter(List<Article> articles, Context context) {
         this.articles = articles;
@@ -45,9 +42,10 @@ public class Adapter  extends RecyclerView.Adapter<Adapter.MyViewHolder>{
     @NonNull
     @Override
     public MyViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-        View view = LayoutInflater.from(context).inflate(R.layout.item, parent, false);
+        View view = LayoutInflater.from(parent.getContext()).inflate(R.layout.item, parent, false);
         return new MyViewHolder(view, onItemClickListener);
     }
+
 
     @Override
     public void onBindViewHolder(@NonNull MyViewHolder holders, int position) {
@@ -84,6 +82,8 @@ public class Adapter  extends RecyclerView.Adapter<Adapter.MyViewHolder>{
         holder.time.setText(" \u2022" + Utils.DateToTimeFormat(model.getPublishedAt()));
         holder.publishedAt.setText(Utils.DateFormat(model.getPublishedAt()));
         holder.author.setText(model.getAuthor());
+
+
     }
 
     @Override
@@ -91,14 +91,23 @@ public class Adapter  extends RecyclerView.Adapter<Adapter.MyViewHolder>{
         return articles.size();
     }
 
+
+
+    public void clear() {
+        articles.clear();
+        notifyDataSetChanged();
+    }
+
+
     public void setOnItemClickListener(OnItemClickListener onItemClickListener) {
         this.onItemClickListener = onItemClickListener;
     }
-    public interface  OnItemClickListener {
+
+    public interface OnItemClickListener {
         void onItemClick(View view, int position);
     }
 
-    public class MyViewHolder extends RecyclerView.ViewHolder implements  View.OnClickListener {
+    public class MyViewHolder extends RecyclerView.ViewHolder implements View.OnClickListener {
         TextView title, desc, author, publishedAt, source, time;
         ImageView imageView;
         ProgressBar progressBar;
@@ -120,10 +129,12 @@ public class Adapter  extends RecyclerView.Adapter<Adapter.MyViewHolder>{
             this.onItemClickListener = onItemClickListener;
 
         }
+
         @Override
         public void onClick(View v) {
             onItemClickListener.onItemClick(v, getAdapterPosition());
         }
 
     }
+
 }

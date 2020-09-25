@@ -1,4 +1,4 @@
-package kg.study.popularnews;
+package kg.study.news;
 
 import org.junit.Test;
 
