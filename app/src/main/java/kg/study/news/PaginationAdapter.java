@@ -66,10 +66,11 @@ public class PaginationAdapter extends RecyclerView.Adapter<RecyclerView.ViewHol
 
     @Override
     public void onBindViewHolder(@NonNull RecyclerView.ViewHolder holder, int position) {
-        final ArticleViewHolder mHolder = (ArticleViewHolder) holder;
-        Article article = articles.get(position);
+
         switch (getItemViewType(position)) {
             case ITEM:
+                ArticleViewHolder mHolder = (ArticleViewHolder) holder;
+                Article article = articles.get(position);
                 RequestOptions requestOptions = new RequestOptions();
                 requestOptions.placeholder(Utils.getRandomDrawbleColor());
                 requestOptions.error(Utils.getRandomDrawbleColor());
@@ -107,6 +108,11 @@ public class PaginationAdapter extends RecyclerView.Adapter<RecyclerView.ViewHol
                 loadingViewHolder.progressBar.setVisibility(View.VISIBLE);
                 break;
         }
+    }
+
+    public void clear() {
+        articles.clear();
+        notifyDataSetChanged();
     }
 
     @Override

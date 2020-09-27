@@ -41,14 +41,13 @@ import kg.study.news.models.News;
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
-
 import static kg.study.news.PaginationListener.PAGE_START;
 
 public class MainActivity extends AppCompatActivity implements SwipeRefreshLayout.OnRefreshListener {
 
     public static final String API_KEY = "3125f0e16a2e44babcdd15b80775d54c";
     private RecyclerView recyclerView;
-    private RecyclerView.LayoutManager layoutManager;
+    private LinearLayoutManager layoutManager;
     private List<Article> articles = new ArrayList<>();
     private Adapter adapter;
     private String TAG = MainActivity.class.getSimpleName();
@@ -76,18 +75,14 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
         swipeRefreshLayout = findViewById(R.id.swipe_refresh_layout);
         swipeRefreshLayout.setOnRefreshListener(this);
         swipeRefreshLayout.setColorSchemeResources(R.color.colorAccent);
-
         topHeadLine = findViewById(R.id.tv_headlines);
-
         recyclerView = findViewById(R.id.recycler_view);
-        layoutManager = new LinearLayoutManager(this);
-//        paginationAdapter = new PaginationAdapter(this);
+        layoutManager = new LinearLayoutManager(this, LinearLayoutManager.VERTICAL, false);
+
         recyclerView.setHasFixedSize(true);
         recyclerView.setLayoutManager(layoutManager);
         recyclerView.setItemAnimator(new DefaultItemAnimator());
         recyclerView.setNestedScrollingEnabled(false);
-        recyclerView.setAdapter(paginationAdapter);
-
 
         errorLayout = findViewById(R.id.errorLayout);
         errorImageView = findViewById(R.id.errorImage);
@@ -98,19 +93,18 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
         progressBar = findViewById(R.id.progressBar);
 //        scrollListener();
 
-        //loadJson("");
         onLoadingSwipeRefresh("");
-
     }
 
     private void scrollListener() {
-        recyclerView.addOnScrollListener(new PaginationListener(new LinearLayoutManager(this)) {
+        recyclerView.addOnScrollListener(new PaginationListener(layoutManager) {
 
             @Override
             protected void loadMoreItems() {
                 isLoading = true;
                 currentPage += 1;
-                loadJson("");
+
+                loadNextNews("");
             }
 
             @Override
@@ -123,7 +117,158 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
                 return isLoading;
             }
         });
-        loadJson("");
+        loadFirstNews("");
+//        onLoadingSwipeRefresh("");
+
+    }
+
+    private void loadFirstNews(final String keyword) {
+        errorLayout.setVisibility(View.GONE);
+        swipeRefreshLayout.setRefreshing(true);
+        currentPage = PAGE_START;
+        ApiInterface apiInterface = Service.getApi();
+        String country = Utils.getCountry();
+        Call<News> call;
+        if (keyword.length() > 0) {
+            call = apiInterface.getNewssearch(keyword, API_KEY);
+        } else {
+            call = apiInterface.getNews(country, API_KEY);
+        }
+        call.enqueue(new Callback<News>() {
+            @Override
+            public void onResponse(Call<News> call, Response<News> response) {
+                if (response.isSuccessful() && response.body().getArticle() != null) {
+                    if (!articles.isEmpty()) {
+                        articles.clear();
+                    }
+                    List<Article> results = response.body().getArticle();
+//                    progressBar.setVisibility(View.GONE);
+                    errorLayout.setVisibility(View.GONE);
+                    paginationAdapter = new PaginationAdapter(MainActivity.this);
+                    recyclerView.setAdapter(paginationAdapter);
+                    paginationAdapter.addAll(results);
+                    paginationAdapter.notifyDataSetChanged();
+                    if (currentPage <= TOTAL_PAGES) paginationAdapter.addLoadingFooter();
+                    else isLastPage = true;
+
+                    initPaginationListener();
+
+                    topHeadLine.setVisibility(View.VISIBLE);
+                    swipeRefreshLayout.setRefreshing(false);
+                } else if (response.raw().cacheResponse() != null &&
+                        response.raw().networkResponse() == null) {
+                    Log.d(TAG, "onResponse: response is from CACHE");
+                } else {
+                    topHeadLine.setVisibility(View.INVISIBLE);
+                    swipeRefreshLayout.setRefreshing(false);
+
+                    String errorCode;
+                    switch (response.code()) {
+                        case 404:
+                            errorCode = "404 not found";
+                            break;
+                        case 500:
+                            errorCode = "500 server broken";
+                            break;
+                        default:
+                            errorCode = "unknown error";
+                            break;
+                    }
+                    showErrorMessage(
+                            R.drawable.ic_mood_bad,
+                            "No Result",
+                            "Please try again!\n" +
+                                    errorCode);
+                }
+
+            }
+            @Override
+            public void onFailure(Call<News> call, Throwable t) {
+                Log.d(TAG, "onFailure");
+                topHeadLine.setVisibility(View.INVISIBLE);
+                swipeRefreshLayout.setRefreshing(false);
+
+                showErrorMessage(
+                        R.drawable.ic_mood_bad,
+                        "Oops...",
+                        "Network failure, please try again!\n" +
+                                t.toString());
+            }
+        });
+    }
+
+    private void loadNextNews(final String keyword) {
+        Log.d(TAG, "loadNextNews");
+        errorLayout.setVisibility(View.GONE);
+        swipeRefreshLayout.setRefreshing(true);
+
+        ApiInterface apiInterface = Service.getApi();
+        String country = Utils.getCountry();
+        Call<News> call;
+
+        if (keyword.length() > 0) {
+            call = apiInterface.getNewssearch(keyword, API_KEY);
+        } else {
+            call = apiInterface.getNews(country, API_KEY);
+        }
+        call.enqueue(new Callback<News>() {
+            @Override
+            public void onResponse(Call<News> call, Response<News> response) {
+                if (response.isSuccessful() && response.body().getArticle() != null) {
+
+                    paginationAdapter.removeLoadingFooter();
+                    isLoading = false;
+
+                    List<Article> results = response.body().getArticle();
+                    paginationAdapter.addAll(results);
+                    paginationAdapter.notifyDataSetChanged();
+                    if (currentPage != TOTAL_PAGES) paginationAdapter.addLoadingFooter();
+                    else isLastPage = true;
+
+                    initPaginationListener();
+
+                    topHeadLine.setVisibility(View.VISIBLE);
+                    swipeRefreshLayout.setRefreshing(false);
+                } else if (response.raw().cacheResponse() != null &&
+                        response.raw().networkResponse() == null) {
+                    Log.d(TAG, "onResponse: response is from CACHE");
+                } else {
+                    topHeadLine.setVisibility(View.INVISIBLE);
+                    swipeRefreshLayout.setRefreshing(false);
+
+                    String errorCode;
+                    switch (response.code()) {
+                        case 404:
+                            errorCode = "404 not found";
+                            break;
+                        case 500:
+                            errorCode = "500 server broken";
+                            break;
+                        default:
+                            errorCode = "unknown error";
+                            break;
+                    }
+                    showErrorMessage(
+                            R.drawable.ic_mood_bad,
+                            "No Result",
+                            "Please try again!\n" +
+                                    errorCode);
+                }
+            }
+            @Override
+            public void onFailure(Call<News> call, Throwable t) {
+                Log.d(TAG, "onFailure");
+                topHeadLine.setVisibility(View.INVISIBLE);
+                swipeRefreshLayout.setRefreshing(false);
+
+                showErrorMessage(
+                        R.drawable.ic_mood_bad,
+                        "Oops...",
+                        "Network failure, please try again!\n" +
+                                t.toString());
+            }
+        });
+
     }
 
     public void loadJson(final String keyword) {
@@ -153,13 +298,7 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
                     }
                     articles = response.body().getArticle();
                     adapter = new Adapter(articles, MainActivity.this);
-//                    paginationAdapter = new PaginationAdapter(MainActivity.this);
                     recyclerView.setAdapter(adapter);
-//                    paginationAdapter.addAll(articles);
-//                    paginationAdapter.notifyDataSetChanged();
-
-//                    if(currentPage <= TOTAL_PAGES) paginationAdapter.addLoadingFooter();
-//                    else isLastPage = true;
                     adapter.notifyDataSetChanged();
 
                     initListener();
@@ -167,19 +306,7 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
                     topHeadLine.setVisibility(View.VISIBLE);
                     swipeRefreshLayout.setRefreshing(false);
 
-//                    if (currentPage != PAGE_START) adapter.removeLoading();
-//                    adapter.addItems(articles);
-//                    swipeRefreshLayout.setRefreshing(false);
-//                    // check weather is last page or not
-//                    if (currentPage < totalPage) {
-//                        adapter.addLoading();
-//                    } else {
-//                        isLastPage = true;
-//                    }
-//                    isLoading = false;
-
-                }
-                else if (response.raw().cacheResponse() != null &&
+                } else if (response.raw().cacheResponse() != null &&
                         response.raw().networkResponse() == null) {
                     Log.d(TAG, "onResponse: response is from CACHE");
                 } else {
@@ -249,6 +376,33 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
         });
     }
 
+    private void initPaginationListener() {
+        Log.d(TAG, "initPaginationListener");
+        paginationAdapter.setOnItemClickListener(new PaginationAdapter.OnItemClickListener() {
+            @Override
+            public void onItemClick(View view, int position) {
+
+                ImageView imageView = view.findViewById(R.id.image);
+                Intent intent = new Intent(MainActivity.this, NewsDetailActivity.class);
+
+                Article article = articles.get(position);
+                intent.putExtra("url", article.getUrl());
+                intent.putExtra("title", article.getTitle());
+                intent.putExtra("img", article.getUrlToImage());
+                intent.putExtra("date", article.getPublishedAt());
+                intent.putExtra("source", article.getSource().getName());
+                intent.putExtra("author", article.getAuthor());
+
+                Pair<View, String> pair = Pair.create(imageView, ViewCompat.getTransitionName(imageView));
+                ActivityOptionsCompat optionsCompat = ActivityOptionsCompat.makeSceneTransitionAnimation(
+                        MainActivity.this, pair
+                );
+
+                startActivity(intent, optionsCompat.toBundle());
+            }
+        });
+    }
+
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         Log.d(TAG, "onCreateOptionsMenu");
@@ -286,6 +440,9 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
         isLastPage = false;
         adapter.clear();
         loadJson("");
+//        paginationAdapter.clear();
+//        loadFirstNews("");
+
     }
 
     private void onLoadingSwipeRefresh(final String keyword) {
@@ -295,6 +452,7 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
                     @Override
                     public void run() {
                         loadJson(keyword);
+//                        loadFirstNews(keyword);
                     }
                 }
         );

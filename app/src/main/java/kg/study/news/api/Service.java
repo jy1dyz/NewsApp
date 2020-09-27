@@ -24,7 +24,7 @@ public class Service {
     public static final String HEADER_CACHE_CONTROL = "Cache-Control";
     public static final String HEADER_PRAGMA = "Pragma";
     private static Service instance;
-    private static final long cacheSize = 5 * 1024 * 1024; // 5 MB
+    private static final long cacheSize = 10 * 1024 * 1024; // 10 MB
 
     public static Service getInstance(){
         if(instance == null){
@@ -113,7 +113,7 @@ public class Service {
                     @Override
                     public void log (String message)
                     {
-                        Log.d(TAG, "log: http log: " + message);
+                        Log.d(TAG, " http log: " + message);
                     }
                 } );
         httpLoggingInterceptor.setLevel( HttpLoggingInterceptor.Level.BODY);
